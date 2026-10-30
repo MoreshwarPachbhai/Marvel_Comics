@@ -11,18 +11,21 @@ function safeLabel(value = "") {
   return value.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim();
 }
 
+const DEFAULT_DRIVE_ROOT_FOLDER_ID = "1nNfIuaDIPxQSfHXciqo3nfGrv1owE7hB";
+
 export async function scanLibrary(rootFolderId) {
-  if (!rootFolderId) throw new Error("Missing DRIVE_ROOT_FOLDER_ID");
+  const folderId = rootFolderId || process.env.DRIVE_ROOT_FOLDER_ID || DEFAULT_DRIVE_ROOT_FOLDER_ID;
+  if (!folderId) throw new Error("Missing DRIVE_ROOT_FOLDER_ID");
 
   const comics = [];
   const visited = new Set();
   const seenFileIds = new Set();
 
-  async function walk(folderId, pathParts = []) {
-    if (visited.has(folderId)) return;
-    visited.add(folderId);
+  async function walk(currentFolderId, pathParts = []) {
+    if (visited.has(currentFolderId)) return;
+    visited.add(currentFolderId);
 
-    const children = await listChildren(folderId);
+    const children = await listChildren(currentFolderId);
     for (const item of children) {
       if (item.mimeType === "application/vnd.google-apps.folder") {
         await walk(item.id, [...pathParts, item.name]);
@@ -51,15 +54,16 @@ export async function scanLibrary(rootFolderId) {
     }
   }
 
-  await walk(rootFolderId);
+  await walk(folderId);
   comics.sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true }));
   return comics;
 }
 
 export async function getFolderContents(folderId, folderName = "") {
-  if (!folderId) throw new Error("Missing folderId");
+  const targetFolderId = folderId || process.env.DRIVE_ROOT_FOLDER_ID || DEFAULT_DRIVE_ROOT_FOLDER_ID;
+  if (!targetFolderId) throw new Error("Missing folderId");
 
-  const children = await listChildren(folderId);
+  const children = await listChildren(targetFolderId);
   const subfolders = [];
   const comics = [];
   const seenIds = new Set();

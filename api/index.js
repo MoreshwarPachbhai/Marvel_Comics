@@ -28,11 +28,16 @@ if (process.env.NODE_ENV !== "test") {
 
 let cache = { comics: null, expiresAt: 0 };
 const folderCache = new Map();
+const DEFAULT_DRIVE_ROOT_FOLDER_ID = "1nNfIuaDIPxQSfHXciqo3nfGrv1owE7hB";
 const cacheSeconds = Math.max(30, Number(process.env.CACHE_TTL_SECONDS || 300));
+
+function getRootFolderId() {
+  return process.env.DRIVE_ROOT_FOLDER_ID || DEFAULT_DRIVE_ROOT_FOLDER_ID;
+}
 
 async function getLibrary(force = false) {
   if (!force && cache.comics && Date.now() < cache.expiresAt) return cache.comics;
-  const comics = await scanLibrary(process.env.DRIVE_ROOT_FOLDER_ID);
+  const comics = await scanLibrary(getRootFolderId());
   cache = { comics, expiresAt: Date.now() + cacheSeconds * 1000 };
   if (comics && comics.length > 0) {
     enqueuePrewarm(comics.slice(0, 2).map((c) => c.id));
@@ -85,7 +90,7 @@ app.get("/api/categories", async (_req, res, next) => {
 
 app.get("/api/folders", async (req, res, next) => {
   try {
-    const rootId = process.env.DRIVE_ROOT_FOLDER_ID;
+    const rootId = getRootFolderId();
     const folderId = req.query.id || rootId;
     const isRoot = folderId === rootId;
 

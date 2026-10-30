@@ -1,0 +1,8 @@
+node_modules
+dist
+.comic_cache
+.env
+.env.local
+.DS_Store
+Thumbs.db
+*.log
